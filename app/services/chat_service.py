@@ -143,4 +143,80 @@ class ChatService:
         """
         if session_id in self.sessions:
             del self.sessions[session_id]
+    
+    def get_session_summary(self, session_id: str) -> Optional[Dict]:
+        """
+        Get summary information for a session.
+        
+        Args:
+            session_id: The session ID
+            
+        Returns:
+            Dictionary with session summary info, or None if session doesn't exist
+        """
+        if session_id not in self.sessions:
+            return None
+        
+        messages = self.sessions[session_id]
+        if not messages:
+            return {
+                "session_id": session_id,
+                "last_message_time": None,
+                "message_count": 0,
+                "preview": "New conversation",
+                "first_message": None
+            }
+        
+        # Get last message timestamp
+        last_message = messages[-1]
+        last_message_time = last_message.get("timestamp")
+        
+        # Get first user message for preview
+        first_user_message = None
+        for msg in messages:
+            if msg.get("role") == "user":
+                first_user_message = msg.get("content", "")
+                break
+        
+        # Get preview (first user message or last message)
+        preview = first_user_message or last_message.get("content", "")
+        if len(preview) > 100:
+            preview = preview[:100] + "..."
+        
+        return {
+            "session_id": session_id,
+            "last_message_time": last_message_time,
+            "message_count": len(messages),
+            "preview": preview,
+            "first_message": first_user_message
+        }
+    
+    def list_sessions(self, limit: Optional[int] = None) -> List[Dict]:
+        """
+        List all chat sessions with summary information.
+        
+        Args:
+            limit: Optional limit on number of sessions to return (most recent first)
+            
+        Returns:
+            List of session summary dictionaries, sorted by last message time (newest first)
+        """
+        sessions_list = []
+        
+        for session_id in self.sessions:
+            summary = self.get_session_summary(session_id)
+            if summary:
+                sessions_list.append(summary)
+        
+        # Sort by last_message_time (newest first)
+        sessions_list.sort(
+            key=lambda x: x["last_message_time"] or "",
+            reverse=True
+        )
+        
+        # Apply limit if specified
+        if limit and limit > 0:
+            sessions_list = sessions_list[:limit]
+        
+        return sessions_list
 

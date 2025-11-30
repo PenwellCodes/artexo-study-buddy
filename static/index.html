@@ -7,10 +7,33 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+    
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h2>Previous Chats</h2>
+            <button id="closeSidebarBtn" class="close-sidebar-btn">×</button>
+        </div>
+        <div class="sidebar-content">
+            <div id="sessionsList" class="sessions-list">
+                <div class="loading-sessions">Loading sessions...</div>
+            </div>
+        </div>
+    </div>
+    
     <div class="chat-container">
         <div class="chat-header">
-            <h1>Artexo</h1>
-            <p class="subtitle">Your AI Learning Assistant</p>
+            <button id="hamburgerBtn" class="hamburger-btn" aria-label="Menu" type="button" onclick="window.toggleSidebar && window.toggleSidebar()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="header-content">
+                <h1>Artexo</h1>
+                <p class="subtitle">Your AI Learning Assistant</p>
+            </div>
             <button id="newChatBtn" class="new-chat-btn">New Chat</button>
         </div>
         
