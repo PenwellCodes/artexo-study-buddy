@@ -41,6 +41,9 @@ class GeminiSettings(LLMSettings):
     # Alternatives: models/gemini-2.0-flash, models/gemini-2.5-flash-lite (even cheaper)
     default_model: str = Field(default="models/gemini-2.5-flash")
     embedding_model: str = Field(default="models/embedding-001")
+    # Limit output tokens to encourage concise answers (approximately 400-600 words)
+    # Override parent class default of None
+    max_tokens: Optional[int] = 600
 
 
 class DatabaseSettings(BaseModel):

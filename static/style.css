@@ -6,7 +6,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #0a1929; /* Dark blue background matching Artexo */
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -18,16 +18,17 @@ body {
     width: 100%;
     max-width: 900px;
     height: 90vh;
-    background: white;
+    background: #0a1929; /* Dark blue matching Artexo */
     border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 107, 53, 0.2); /* Subtle orange border */
     display: flex;
     flex-direction: column;
     overflow: hidden;
 }
 
 .chat-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #0a1929; /* Dark blue matching Artexo */
     color: white;
     padding: 20px 30px;
     display: flex;
@@ -35,11 +36,23 @@ body {
     align-items: center;
     flex-wrap: wrap;
     gap: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .chat-header h1 {
     font-size: 28px;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chat-header h1::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+     /* Orange square like Artexo logo */
+    display: inline-block;
 }
 
 .subtitle {
@@ -49,8 +62,8 @@ body {
 }
 
 .new-chat-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: #ff6b35; /* Bright orange matching Artexo */
+    border: none;
     color: white;
     padding: 10px 20px;
     border-radius: 8px;
@@ -61,8 +74,9 @@ body {
 }
 
 .new-chat-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: #ff8555; /* Lighter orange on hover */
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
 }
 
 .chat-messages {
@@ -72,7 +86,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    background: #f8f9fa;
+    background: #0f1b2e; /* Slightly lighter dark blue for messages area */
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -80,26 +94,27 @@ body {
 }
 
 .chat-messages::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: #1a2332;
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-    background: #888;
+    background: #ff6b35; /* Orange scrollbar */
     border-radius: 4px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: #ff8555; /* Lighter orange on hover */
 }
 
 .welcome-message {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #0a1929; /* Dark blue matching Artexo */
     color: white;
     padding: 20px;
     border-radius: 15px;
     text-align: center;
     margin-bottom: 10px;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    border-left: 4px solid #ff6b35; /* Orange accent line */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .message {
@@ -137,16 +152,16 @@ body {
 }
 
 .message.user .message-bubble {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #ff6b35; /* Bright orange matching Artexo */
     color: white;
     border-bottom-right-radius: 4px;
 }
 
 .message.assistant .message-bubble {
-    background: white;
-    color: #333;
+    background: #1a2332; /* Dark grey-blue for assistant messages */
+    color: #ffffff;
     border-bottom-left-radius: 4px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid rgba(255, 107, 53, 0.2); /* Subtle orange border */
 }
 
 .message-content {
@@ -155,23 +170,23 @@ body {
 
 .chat-input-container {
     padding: 20px 30px;
-    background: white;
-    border-top: 1px solid #e0e0e0;
+    background: #0a1929; /* Dark blue matching header */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .input-wrapper {
     display: flex;
     gap: 10px;
     align-items: flex-end;
-    background: #f8f9fa;
+    background: #1a2332; /* Dark grey-blue for input */
     border-radius: 25px;
     padding: 10px 15px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid rgba(255, 255, 255, 0.1);
     transition: border-color 0.3s ease;
 }
 
 .input-wrapper:focus-within {
-    border-color: #667eea;
+    border-color: #ff6b35; /* Orange focus color */
 }
 
 #messageInput {
@@ -185,10 +200,15 @@ body {
     max-height: 120px;
     padding: 5px 0;
     line-height: 1.5;
+    color: #ffffff; /* White text for dark background */
+}
+
+#messageInput::placeholder {
+    color: rgba(255, 255, 255, 0.5); /* Semi-transparent white for placeholder */
 }
 
 .send-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #ff6b35; /* Bright orange matching Artexo */
     border: none;
     color: white;
     width: 40px;
@@ -203,8 +223,9 @@ body {
 }
 
 .send-btn:hover {
+    background: #ff8555; /* Lighter orange on hover */
     transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
 }
 
 .send-btn:active {
@@ -219,8 +240,8 @@ body {
 
 .loading-indicator {
     padding: 10px 30px;
-    background: white;
-    border-top: 1px solid #e0e0e0;
+    background: #0a1929; /* Dark blue matching container */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .loading-dots {
@@ -234,7 +255,7 @@ body {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #667eea;
+    background: #ff6b35; /* Orange loading dots */
     animation: bounce 1.4s infinite ease-in-out both;
 }
 

@@ -6,9 +6,11 @@ from services.llm_factory import LLMFactory
 
 class SynthesizedResponse(BaseModel):
     thought_process: List[str] = Field(
-        description="List of thoughts that the AI assistant had while synthesizing the answer"
+        description="Brief list of key thoughts (2-3 items max) that the AI assistant had while synthesizing the answer"
     )
-    answer: str = Field(description="The synthesized answer to the user's question")
+    answer: str = Field(
+        description="The synthesized answer to the user's question. MUST be concise and brief (2-4 sentences for simple questions, 1-2 short paragraphs maximum for complex topics). Keep it short to save tokens."
+    )
     enough_context: bool = Field(
         description="Whether the assistant has enough context to answer the question"
     )
@@ -17,23 +19,32 @@ class SynthesizedResponse(BaseModel):
 class Synthesizer:
     SYSTEM_PROMPT = """
     # Role and Purpose
-    You are an AI study assistant for a learning application. Your task is to synthesize a coherent and helpful answer 
+    You are an AI study assistant for a learning application. Your task is to synthesize a concise, helpful answer 
     based on the given question and relevant context retrieved from study materials (books) stored in a knowledge database.
 
+    # CRITICAL: Answer Length Requirements
+    - Keep answers SHORT and CONCISE (2-4 sentences maximum for simple questions, 1-2 paragraphs for complex topics)
+    - Be direct and to the point - avoid unnecessary elaboration
+    - Focus on the key information needed to answer the question
+    - Use bullet points when listing multiple items to save space
+    - Do NOT write long explanations unless absolutely necessary
+
     # Guidelines:
-    1. Provide a clear, educational, and comprehensive answer to the question.
+    1. Provide a clear, educational, and CONCISE answer to the question (prioritize brevity).
     2. Use only the information from the relevant context (book excerpts) to support your answer.
     3. The context is retrieved based on cosine similarity from multiple books, so some information might be missing or irrelevant.
-    4. When multiple books contain relevant information, synthesize the information coherently.
-    5. Be transparent when there is insufficient information to fully answer the question.
+    4. When multiple books contain relevant information, synthesize the information coherently but briefly.
+    5. Be transparent when there is insufficient information to fully answer the question (in 1-2 sentences).
     6. Do not make up or infer information not present in the provided context.
-    7. If you cannot answer the question based on the given context, clearly state that and suggest what information might be needed.
+    7. If you cannot answer the question based on the given context, clearly state that briefly and suggest what information might be needed.
     8. Maintain an educational and supportive tone appropriate for a study assistant.
-    9. Cite which book(s) the information comes from when multiple books are referenced.
-    10. Help the student understand the concepts clearly, not just provide answers.
-    11. After explaining a concept, you may offer test questions to help the student practice and reinforce their understanding.
-    12. You can ask clarifying questions if the student's question is ambiguous or needs more context.
-    13. Maintain conversation context - refer back to previous messages when relevant to provide coherent responses.
+    9. Cite which book(s) the information comes from when multiple books are referenced (briefly, e.g., "According to [book title]").
+    10. Help the student understand the concepts clearly, but keep explanations short and focused.
+    11. After explaining a concept briefly, you may offer ONE test question to help the student practice (keep the question short).
+    12. You can ask clarifying questions if the student's question is ambiguous (keep questions brief).
+    13. Maintain conversation context - refer back to previous messages when relevant, but keep it concise.
+    
+    Remember: SHORT answers save tokens and costs. Be helpful but brief.
     
     Review the question from the user:
     """
@@ -106,9 +117,14 @@ class Synthesizer:
         )
 
         llm = LLMFactory("gemini")
+        # Set max_tokens to limit response length and reduce costs
+        max_tokens = (
+            llm.settings.max_tokens or 600
+        )  # Default to 600 tokens for concise answers
         return llm.create_completion(
             response_model=SynthesizedResponse,
             messages=messages,
+            max_tokens=max_tokens,
         )
 
     @staticmethod
