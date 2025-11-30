@@ -238,15 +238,45 @@ function toggleSidebar() {
     }
     
     const isActive = sidebar.classList.contains('active');
+    console.log('Sidebar current state:', {
+        isActive: isActive,
+        sidebarElement: sidebar,
+        sidebarClasses: sidebar.className,
+        sidebarTransform: window.getComputedStyle(sidebar).transform,
+        sidebarDisplay: window.getComputedStyle(sidebar).display,
+        sidebarVisibility: window.getComputedStyle(sidebar).visibility,
+        sidebarZIndex: window.getComputedStyle(sidebar).zIndex,
+        sidebarLeft: window.getComputedStyle(sidebar).left,
+        sidebarWidth: window.getComputedStyle(sidebar).width
+    });
     
     if (isActive) {
         sidebar.classList.remove('active');
         sidebarOverlay.classList.remove('active');
         hamburgerBtn.classList.remove('active');
+        console.log('Sidebar closed');
     } else {
         sidebar.classList.add('active');
         sidebarOverlay.classList.add('active');
         hamburgerBtn.classList.add('active');
+        console.log('Sidebar opened - checking styles after adding active class');
+        
+        // Check styles after a brief delay to ensure CSS has applied
+        setTimeout(() => {
+            const styles = window.getComputedStyle(sidebar);
+            console.log('Sidebar styles after opening:', {
+                transform: styles.transform,
+                display: styles.display,
+                visibility: styles.visibility,
+                zIndex: styles.zIndex,
+                left: styles.left,
+                width: styles.width,
+                hasActiveClass: sidebar.classList.contains('active'),
+                offsetLeft: sidebar.offsetLeft,
+                offsetWidth: sidebar.offsetWidth
+            });
+        }, 100);
+        
         // Load sessions when opening
         loadSessions();
     }
@@ -263,13 +293,17 @@ function closeSidebar() {
 
 // Load and display sessions
 async function loadSessions() {
-    if (!sessionsList) {
+    // Re-query to ensure element exists
+    const listElement = document.getElementById('sessionsList');
+    if (!listElement) {
         console.error('Sessions list element not found!');
         return;
     }
     
+    console.log('loadSessions called, listElement found:', listElement);
+    
     try {
-        sessionsList.innerHTML = '<div class="loading-sessions">Loading sessions...</div>';
+        listElement.innerHTML = '<div class="loading-sessions">Loading sessions...</div>';
         
         const response = await fetch(`${API_BASE}/chat/sessions?limit=50`);
         
@@ -278,19 +312,34 @@ async function loadSessions() {
         }
         
         const data = await response.json();
-        displaySessions(data.sessions);
+        console.log('Received sessions data:', data);
+        if (data && data.sessions) {
+            displaySessions(data.sessions);
+        } else {
+            console.error('Invalid response format:', data);
+            listElement.innerHTML = '<div class="empty-sessions"><p>Invalid response format</p></div>';
+        }
     } catch (error) {
         console.error('Error loading sessions:', error);
-        if (sessionsList) {
-            sessionsList.innerHTML = '<div class="empty-sessions"><p>Failed to load sessions</p></div>';
+        if (listElement) {
+            listElement.innerHTML = '<div class="empty-sessions"><p>Failed to load sessions</p></div>';
         }
     }
 }
 
 // Display sessions in sidebar
 function displaySessions(sessions) {
-    if (sessions.length === 0) {
-        sessionsList.innerHTML = `
+    // Re-query the element to ensure it exists
+    const listElement = document.getElementById('sessionsList');
+    if (!listElement) {
+        console.error('sessionsList element not found in displaySessions!');
+        return;
+    }
+    
+    console.log('Displaying sessions:', sessions);
+    
+    if (!sessions || sessions.length === 0) {
+        listElement.innerHTML = `
             <div class="empty-sessions">
                 <p>No previous chats</p>
                 <p style="font-size: 12px; margin-top: 10px;">Start a conversation to see it here</p>
@@ -299,33 +348,131 @@ function displaySessions(sessions) {
         return;
     }
     
-    sessionsList.innerHTML = '';
+    // Clear existing content
+    listElement.innerHTML = '';
+    console.log('Cleared sessionsList, starting to render', sessions.length, 'sessions');
+    console.log('List element before rendering:', {
+        offsetHeight: listElement.offsetHeight,
+        offsetWidth: listElement.offsetWidth,
+        computedDisplay: window.getComputedStyle(listElement).display,
+        computedVisibility: window.getComputedStyle(listElement).visibility,
+        computedOpacity: window.getComputedStyle(listElement).opacity,
+        parent: listElement.parentElement,
+        parentDisplay: listElement.parentElement ? window.getComputedStyle(listElement.parentElement).display : 'N/A'
+    });
     
-    sessions.forEach(session => {
-        const sessionItem = document.createElement('div');
-        sessionItem.className = 'session-item';
-        if (session.session_id === currentSessionId) {
-            sessionItem.classList.add('active');
+    // Create and append session items
+    sessions.forEach((session, index) => {
+        try {
+            const sessionItem = document.createElement('div');
+            sessionItem.className = 'session-item';
+            sessionItem.dataset.sessionId = session.session_id;
+            sessionItem.style.display = 'block'; // Ensure it's visible
+            sessionItem.style.minHeight = '60px'; // Ensure it has height
+            
+            if (session.session_id === currentSessionId) {
+                sessionItem.classList.add('active');
+            }
+            
+            // Format timestamp - with error handling
+            let timeStr = 'New';
+            try {
+                if (session.last_message_time) {
+                    timeStr = formatTime(session.last_message_time);
+                }
+            } catch (e) {
+                console.warn('Error formatting time:', e);
+                timeStr = 'Recent';
+            }
+            
+            // Create preview text (truncate if too long)
+            const preview = session.preview || 'New conversation';
+            const truncatedPreview = preview.length > 60 ? preview.substring(0, 60) + '...' : preview;
+            
+            // Build HTML safely
+            const previewHtml = escapeHtml(truncatedPreview);
+            const messageCount = session.message_count || 0;
+            
+            sessionItem.innerHTML = `
+                <div class="session-preview">${previewHtml}</div>
+                <div class="session-meta">
+                    <span class="session-time">${timeStr}</span>
+                    <span class="session-count">${messageCount} msgs</span>
+                </div>
+            `;
+            
+            sessionItem.addEventListener('click', () => {
+                console.log('Loading session:', session.session_id);
+                loadSession(session.session_id);
+            });
+            
+            listElement.appendChild(sessionItem);
+            
+            // Force visibility check
+            const itemStyles = window.getComputedStyle(sessionItem);
+            if (itemStyles.display === 'none' || itemStyles.visibility === 'hidden' || itemStyles.opacity === '0') {
+                console.warn(`⚠️ Session item ${index + 1} has visibility issues:`, {
+                    display: itemStyles.display,
+                    visibility: itemStyles.visibility,
+                    opacity: itemStyles.opacity
+                });
+            }
+            
+            console.log(`✓ Added session ${index + 1}/${sessions.length}: ${session.session_id}`, {
+                preview: truncatedPreview,
+                timeStr: timeStr,
+                messageCount: messageCount,
+                offsetHeight: sessionItem.offsetHeight,
+                offsetWidth: sessionItem.offsetWidth,
+                display: itemStyles.display,
+                visibility: itemStyles.visibility
+            });
+        } catch (error) {
+            console.error(`✗ Error rendering session ${index}:`, error, session);
         }
-        
-        // Format timestamp
-        const timeStr = session.last_message_time 
-            ? formatTime(session.last_message_time)
-            : 'New';
-        
-        sessionItem.innerHTML = `
-            <div class="session-preview">${escapeHtml(session.preview)}</div>
-            <div class="session-meta">
-                <span class="session-time">${timeStr}</span>
-                <span class="session-count">${session.message_count} msgs</span>
-            </div>
-        `;
-        
-        sessionItem.addEventListener('click', () => {
-            loadSession(session.session_id);
+    });
+    
+    console.log(`✅ Successfully rendered ${sessions.length} sessions in sidebar`);
+    
+    // Debug: Check visibility of first session item
+    if (listElement.children.length > 0) {
+        const firstItem = listElement.children[0];
+        const firstItemStyles = window.getComputedStyle(firstItem);
+        console.log('First session item styles:', {
+            display: firstItemStyles.display,
+            visibility: firstItemStyles.visibility,
+            opacity: firstItemStyles.opacity,
+            height: firstItemStyles.height,
+            minHeight: firstItemStyles.minHeight,
+            offsetHeight: firstItem.offsetHeight,
+            offsetWidth: firstItem.offsetWidth,
+            backgroundColor: firstItemStyles.backgroundColor,
+            color: firstItemStyles.color
         });
-        
-        sessionsList.appendChild(sessionItem);
+    }
+    
+    // Debug: Check sidebar visibility
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        const sidebarStyles = window.getComputedStyle(sidebar);
+        console.log('Sidebar styles:', {
+            display: sidebarStyles.display,
+            visibility: sidebarStyles.visibility,
+            transform: sidebarStyles.transform,
+            left: sidebarStyles.left,
+            hasActiveClass: sidebar.classList.contains('active'),
+            offsetWidth: sidebar.offsetWidth,
+            offsetHeight: sidebar.offsetHeight
+        });
+    }
+    
+    console.log('List element info:', {
+        childrenCount: listElement.children.length,
+        offsetHeight: listElement.offsetHeight,
+        scrollHeight: listElement.scrollHeight,
+        offsetWidth: listElement.offsetWidth,
+        computedDisplay: window.getComputedStyle(listElement).display,
+        computedVisibility: window.getComputedStyle(listElement).visibility
     });
 }
 

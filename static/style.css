@@ -25,6 +25,8 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative; /* Ensure it doesn't interfere with fixed sidebar */
+    z-index: 1; /* Lower than sidebar */
 }
 
 .chat-header {
@@ -45,29 +47,22 @@ body {
     display: flex;
     flex-direction: column;
     gap: 5px;
+    align-items: center;
+    justify-content: center;
 }
 
 .chat-header h1 {
     font-size: 28px;
     font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 10px;
     margin: 0;
-}
-
-.chat-header h1::before {
-    content: '';
-    width: 12px;
-    height: 12px;
-    background: #ff6b35; /* Orange square like Artexo logo */
-    display: inline-block;
+    text-align: center;
 }
 
 .subtitle {
     font-size: 14px;
     opacity: 0.9;
     margin: 0;
+    text-align: center;
 }
 
 /* Hamburger Menu Button */
@@ -130,29 +125,35 @@ body {
 .sidebar-overlay.active {
     opacity: 1;
     visibility: visible;
+    z-index: 9999 !important; /* Just below sidebar */
 }
 
 /* Sidebar */
 .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
     width: 320px;
     max-width: 85vw;
-    height: 100vh;
-    background: #0a1929; /* Dark blue matching Artexo */
+    height: 100vh !important;
+    background: #0a1929;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
+    z-index: 10000 !important;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
-    display: flex;
+    display: flex !important;
     flex-direction: column;
     border-right: 1px solid rgba(255, 107, 53, 0.2);
-    overflow-y: auto;
+
+    /* FIX */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
 }
 
 .sidebar.active {
-    transform: translateX(0);
+    transform: translateX(0) !important; /* Force transform to show sidebar */
+    visibility: visible !important;
+    pointer-events: auto !important;
 }
 
 .sidebar-header {
@@ -196,6 +197,9 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 10px;
+    min-height: 0; /* Allow flex shrinking */
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar-content::-webkit-scrollbar {
@@ -216,9 +220,13 @@ body {
 }
 
 .sessions-list {
-    display: flex;
+    display: flex !important; /* Force flex display */
     flex-direction: column;
     gap: 8px;
+    min-height: 50px; /* Ensure it has minimum height */
+    width: 100%; /* Ensure it takes full width */
+    flex: 1; /* Take available space */
+    overflow-y: auto; /* Allow scrolling if needed */
 }
 
 .session-item {
@@ -229,6 +237,10 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
+    display: block !important; /* Force display */
+    min-height: 60px; /* Ensure minimum height */
+    width: 100%; /* Full width */
+    box-sizing: border-box; /* Include padding in width */
 }
 
 .session-item:hover {
@@ -254,7 +266,7 @@ body {
 }
 
 .session-preview {
-    color: white;
+    color: white !important; /* Force white color */
     font-size: 14px;
     line-height: 1.4;
     margin-bottom: 8px;
@@ -264,6 +276,7 @@ body {
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
+    min-height: 20px; /* Ensure text area has height */
 }
 
 .session-meta {
