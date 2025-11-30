@@ -92,13 +92,29 @@ class LLMFactory:
         if kwargs.get("max_tokens") or self.settings.max_tokens:
             generation_config["max_output_tokens"] = kwargs.get("max_tokens", self.settings.max_tokens)
         
-        response = self.client.generate_content(
-            prompt,
-            generation_config=generation_config,
-        )
+        try:
+            response = self.client.generate_content(
+                prompt,
+                generation_config=generation_config,
+            )
+        except Exception as e:
+            raise ValueError(f"Gemini API call failed: {str(e)}")
+        
+        # Check if response has text
+        if not hasattr(response, 'text') or not response.text:
+            # Try to get candidate text
+            if hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                    response_text = ''.join([part.text for part in candidate.content.parts if hasattr(part, 'text')])
+                else:
+                    raise ValueError("Gemini API returned response without text content")
+            else:
+                raise ValueError("Gemini API returned empty response")
+        else:
+            response_text = response.text.strip()
         
         # Parse JSON response and validate against Pydantic model
-        response_text = response.text.strip()
         # Remove markdown code blocks if present
         if response_text.startswith("```json"):
             response_text = response_text[7:]

@@ -80,23 +80,42 @@ def process_csv_file(csv_path: str):
     return records_df
 
 
-def process_pdf_file(pdf_path: str, book_title: str = None):
+def process_pdf_file(pdf_path: str, book_title: str = None, show_progress: bool = True):
     """Process a PDF file and return records DataFrame.
 
     Args:
         pdf_path: Path to the PDF file.
         book_title: Optional book title. If not provided, will be extracted from PDF.
+        show_progress: Whether to show progress indicators.
 
     Returns:
         A pandas DataFrame with records ready for insertion.
     """
+    if show_progress:
+        print(f"📄 Processing PDF: {os.path.basename(pdf_path)}")
+    
     processor = PDFProcessor(chunk_size=1000, chunk_overlap=200)
     chunks = processor.process_pdf(pdf_path, book_title=book_title)
     
+    if show_progress:
+        print(f"✅ Extracted {len(chunks)} chunks")
+        print("🔄 Generating embeddings (this may take a while for large PDFs)...")
+    
     records = []
-    for chunk in chunks:
-        record = prepare_record_from_pdf_chunk(chunk, chunk["book_title"])
-        records.append(record)
+    total_chunks = len(chunks)
+    for idx, chunk in enumerate(chunks):
+        if show_progress and (idx + 1) % 10 == 0:
+            print(f"   Progress: {idx + 1}/{total_chunks} chunks processed ({((idx + 1) / total_chunks * 100):.1f}%)")
+        
+        try:
+            record = prepare_record_from_pdf_chunk(chunk, chunk["book_title"])
+            records.append(record)
+        except Exception as e:
+            print(f"⚠️  Warning: Failed to process chunk {idx + 1}: {str(e)}")
+            continue
+    
+    if show_progress:
+        print(f"✅ Successfully processed {len(records)}/{total_chunks} chunks")
     
     return pd.DataFrame(records)
 
@@ -158,38 +177,77 @@ def main():
     args = parser.parse_args()
 
     # Determine which mode to use
-    if args.csv:
-        print("Processing CSV file...")
-        records_df = process_csv_file(args.csv)
-    elif args.pdf:
-        print("Processing PDF file...")
-        records_df = process_pdf_file(args.pdf, book_title=args.book_title)
-    elif args.pdf_dir:
-        print("Processing PDF directory...")
-        records_df = process_pdf_directory(args.pdf_dir)
-    else:
-        # Default: try to process CSV for backward compatibility
-        csv_path = "../data/faq_dataset.csv"
-        if os.path.exists(csv_path):
-            print("Processing default CSV file...")
-            records_df = process_csv_file(csv_path)
+    try:
+        if args.csv:
+            print("📊 Processing CSV file...")
+            records_df = process_csv_file(args.csv)
+        elif args.pdf:
+            print("📄 Processing PDF file...")
+            # Resolve path - handle both relative and absolute paths
+            pdf_path = args.pdf
+            if not os.path.isabs(pdf_path):
+                # Try relative to current directory first
+                if not os.path.exists(pdf_path):
+                    # Try relative to app directory
+                    app_dir = os.path.dirname(os.path.abspath(__file__))
+                    alt_path = os.path.join(app_dir, pdf_path)
+                    if os.path.exists(alt_path):
+                        pdf_path = alt_path
+                    else:
+                        # Try relative to parent directory
+                        parent_dir = os.path.dirname(app_dir)
+                        alt_path = os.path.join(parent_dir, pdf_path.lstrip('../'))
+                        if os.path.exists(alt_path):
+                            pdf_path = alt_path
+            
+            if not os.path.exists(pdf_path):
+                print(f"❌ Error: PDF file not found: {args.pdf}")
+                print(f"   Tried: {pdf_path}")
+                return 1
+            
+            records_df = process_pdf_file(pdf_path, book_title=args.book_title)
+        elif args.pdf_dir:
+            print("📁 Processing PDF directory...")
+            records_df = process_pdf_directory(args.pdf_dir)
         else:
-            parser.print_help()
-            return
+            # Default: try to process CSV for backward compatibility
+            csv_path = "../data/faq_dataset.csv"
+            if os.path.exists(csv_path):
+                print("📊 Processing default CSV file...")
+                records_df = process_csv_file(csv_path)
+            else:
+                parser.print_help()
+                return 1
 
-    # Create tables and insert data
-    print("Creating tables...")
-    vec.create_tables()
-    
-    if not args.skip_index:
-        print("Creating index...")
-        vec.create_index()  # DiskAnnIndex
-    else:
-        print("Skipping index creation...")
-    
-    print(f"Inserting {len(records_df)} records...")
-    vec.upsert(records_df)
-    print("Done!")
+        if records_df.empty:
+            print("❌ Error: No records to insert")
+            return 1
+
+        # Create tables and insert data
+        print("\n🗄️  Setting up database...")
+        print("   Creating tables...")
+        vec.create_tables()
+        
+        if not args.skip_index:
+            print("   Creating index (this may take a while)...")
+            vec.create_index()  # DiskAnnIndex
+        else:
+            print("   Skipping index creation (using existing index)...")
+        
+        print(f"\n💾 Inserting {len(records_df)} records into database...")
+        vec.upsert(records_df)
+        print("✅ Done! Data successfully uploaded to database.")
+        print(f"   Total records inserted: {len(records_df)}")
+        return 0
+        
+    except KeyboardInterrupt:
+        print("\n⚠️  Process interrupted by user")
+        return 1
+    except Exception as e:
+        print(f"\n❌ Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return 1
 
 
 if __name__ == "__main__":

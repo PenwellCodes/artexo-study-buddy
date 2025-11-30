@@ -37,7 +37,9 @@ class GeminiSettings(LLMSettings):
     """Gemini-specific settings extending LLMSettings."""
 
     api_key: str = Field(default_factory=lambda: os.getenv("GEMINI_API_KEY"))
-    default_model: str = Field(default="gemini-1.5-pro")
+    # Using gemini-2.5-flash for cost efficiency (cheaper than pro models)
+    # Alternatives: models/gemini-2.0-flash, models/gemini-2.5-flash-lite (even cheaper)
+    default_model: str = Field(default="models/gemini-2.5-flash")
     embedding_model: str = Field(default="models/embedding-001")
 
 

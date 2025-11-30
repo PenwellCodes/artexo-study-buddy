@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import pandas as pd
 from pydantic import BaseModel, Field
 from services.llm_factory import LLMFactory
@@ -31,33 +31,79 @@ class Synthesizer:
     8. Maintain an educational and supportive tone appropriate for a study assistant.
     9. Cite which book(s) the information comes from when multiple books are referenced.
     10. Help the student understand the concepts clearly, not just provide answers.
+    11. After explaining a concept, you may offer test questions to help the student practice and reinforce their understanding.
+    12. You can ask clarifying questions if the student's question is ambiguous or needs more context.
+    13. Maintain conversation context - refer back to previous messages when relevant to provide coherent responses.
     
     Review the question from the user:
     """
 
     @staticmethod
-    def generate_response(question: str, context: pd.DataFrame) -> SynthesizedResponse:
+    def generate_response(
+        question: str,
+        context: pd.DataFrame,
+        conversation_history: Optional[List[dict]] = None,
+    ) -> SynthesizedResponse:
         """Generates a synthesized response based on the question and context.
 
         Args:
             question: The user's question.
             context: The relevant context retrieved from the knowledge base.
+            conversation_history: Optional list of previous messages in the conversation.
 
         Returns:
             A SynthesizedResponse containing thought process and answer.
         """
-        context_str = Synthesizer.dataframe_to_json(
-            context, columns_to_keep=["content", "book_title"]
-        )
+        # Handle empty context
+        if context.empty or len(context) == 0:
+            context_str = "No relevant context found in the knowledge base."
+        else:
+            # Check which columns are available
+            available_columns = context.columns.tolist()
+            columns_to_keep = []
 
-        messages = [
-            {"role": "system", "content": Synthesizer.SYSTEM_PROMPT},
-            {"role": "user", "content": f"# User question:\n{question}"},
+            # Add content column if available
+            if "content" in available_columns:
+                columns_to_keep.append("content")
+
+            # Add book_title if available
+            if "book_title" in available_columns:
+                columns_to_keep.append("book_title")
+
+            # If no expected columns, use all available columns
+            if not columns_to_keep:
+                columns_to_keep = available_columns[:5]  # Limit to first 5 columns
+
+            try:
+                context_str = Synthesizer.dataframe_to_json(
+                    context, columns_to_keep=columns_to_keep
+                )
+            except Exception as e:
+                # Fallback if JSON conversion fails
+                import logging
+
+                logging.warning(f"Failed to convert context to JSON: {str(e)}")
+                context_str = "Context retrieved but could not be formatted properly."
+
+        # Build messages list with conversation history
+        messages = [{"role": "system", "content": Synthesizer.SYSTEM_PROMPT}]
+
+        # Add conversation history if provided
+        if conversation_history:
+            for msg in conversation_history:
+                # Only include role and content, skip timestamp
+                messages.append(
+                    {"role": msg.get("role", "user"), "content": msg.get("content", "")}
+                )
+
+        # Add current question and context
+        messages.append({"role": "user", "content": f"# User question:\n{question}"})
+        messages.append(
             {
                 "role": "assistant",
                 "content": f"# Retrieved information:\n{context_str}",
-            },
-        ]
+            }
+        )
 
         llm = LLMFactory("gemini")
         return llm.create_completion(
