@@ -73,6 +73,13 @@ class VectorStore:
                 f"DROP INDEX IF EXISTS {self.vector_settings.table_name}_embedding_ivfflat;"
             )
 
+    def _normalize_embedding(self, embedding: List[float]) -> List[float]:
+        """Normalize embedding for cosine distance (required by pgvector)."""
+        norm = sum(x * x for x in embedding) ** 0.5
+        if norm == 0:
+            return embedding
+        return [x / norm for x in embedding]
+
     def _to_vector_str(self, embedding: List[float]) -> str:
         """Convert embedding list to pgvector literal string."""
         return "[" + ",".join(f"{x:.8f}" for x in embedding) + "]"
@@ -87,7 +94,7 @@ class VectorStore:
         for _, row in df.iterrows():
             metadata = row["metadata"] or {}
             contents = row["contents"]
-            embedding = row["embedding"]
+            embedding = self._normalize_embedding(row["embedding"])
             created_at = metadata.get("created_at")
             try:
                 created_at_dt = (
@@ -133,7 +140,7 @@ class VectorStore:
         return_dataframe: bool = True,
     ) -> Union[List[Tuple[Any, ...]], pd.DataFrame]:
         """Query the vector database for similar embeddings using pgvector cosine distance."""
-        query_embedding = self.get_embedding(query_text)
+        query_embedding = self._normalize_embedding(self.get_embedding(query_text))
         vector_literal = self._to_vector_str(query_embedding)
 
         sql = f"""
