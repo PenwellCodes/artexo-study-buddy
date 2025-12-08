@@ -9,12 +9,12 @@ services:
         sync: false
       - key: TIMESCALE_SERVICE_URL
         fromDatabase:
-          name: artexo-study-buddy-db
+          name: artexo_study_buddy_db
           property: connectionString
 
 databases:
-  - name: artexo-study-buddy-db
-    databaseName: artexo-study-buddy-db
+  - name: artexo_study_buddy_db
+    databaseName: artexo_study_buddy
     user: artexo_user
     plan: free
     ipAllowList: []
