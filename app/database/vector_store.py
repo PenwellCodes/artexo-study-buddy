@@ -189,6 +189,10 @@ class VectorStore:
         df = pd.concat(
             [df.drop(["metadata"], axis=1), df["metadata"].apply(pd.Series)], axis=1
         )
+
+        # Align with synthesizer expectations: rename contents -> content
+        if "contents" in df.columns:
+            df = df.rename(columns={"contents": "content"})
         df["id"] = df["id"].astype(str)
         return df
 
