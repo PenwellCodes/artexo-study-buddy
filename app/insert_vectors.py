@@ -1,12 +1,12 @@
 import argparse
 import os
+import uuid
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 from database.vector_store import VectorStore
 from services.pdf_processor import PDFProcessor
-from timescale_vector.client import uuid_from_time
 
 # Initialize VectorStore
 vec = VectorStore()
@@ -36,7 +36,7 @@ def prepare_record_from_csv(row):
     embedding = vec.get_embedding(content)
     return pd.Series(
         {
-            "id": str(uuid_from_time(datetime.now())),
+            "id": str(uuid.uuid1()),
             "metadata": {
                 "category": row["category"],
                 "created_at": datetime.now().isoformat(),
@@ -61,7 +61,7 @@ def prepare_record_from_pdf_chunk(chunk_data: dict, book_title: str):
     embedding = vec.get_embedding(content)
     return pd.Series(
         {
-            "id": str(uuid_from_time(datetime.now())),
+            "id": str(uuid.uuid1()),
             "metadata": {
                 "book_title": book_title,
                 "chunk_index": chunk_data["chunk_index"],
@@ -93,30 +93,32 @@ def process_pdf_file(pdf_path: str, book_title: str = None, show_progress: bool 
     """
     if show_progress:
         print(f"📄 Processing PDF: {os.path.basename(pdf_path)}")
-    
+
     processor = PDFProcessor(chunk_size=1000, chunk_overlap=200)
     chunks = processor.process_pdf(pdf_path, book_title=book_title)
-    
+
     if show_progress:
         print(f"✅ Extracted {len(chunks)} chunks")
         print("🔄 Generating embeddings (this may take a while for large PDFs)...")
-    
+
     records = []
     total_chunks = len(chunks)
     for idx, chunk in enumerate(chunks):
         if show_progress and (idx + 1) % 10 == 0:
-            print(f"   Progress: {idx + 1}/{total_chunks} chunks processed ({((idx + 1) / total_chunks * 100):.1f}%)")
-        
+            print(
+                f"   Progress: {idx + 1}/{total_chunks} chunks processed ({((idx + 1) / total_chunks * 100):.1f}%)"
+            )
+
         try:
             record = prepare_record_from_pdf_chunk(chunk, chunk["book_title"])
             records.append(record)
         except Exception as e:
             print(f"⚠️  Warning: Failed to process chunk {idx + 1}: {str(e)}")
             continue
-    
+
     if show_progress:
         print(f"✅ Successfully processed {len(records)}/{total_chunks} chunks")
-    
+
     return pd.DataFrame(records)
 
 
@@ -131,16 +133,16 @@ def process_pdf_directory(pdf_directory: str):
     """
     pdf_dir = Path(pdf_directory)
     pdf_files = list(pdf_dir.glob("*.pdf"))
-    
+
     if not pdf_files:
         raise ValueError(f"No PDF files found in directory: {pdf_directory}")
-    
+
     all_records = []
     for pdf_file in pdf_files:
         print(f"Processing PDF: {pdf_file.name}")
         records_df = process_pdf_file(str(pdf_file))
         all_records.append(records_df)
-    
+
     return pd.concat(all_records, ignore_index=True)
 
 
@@ -196,15 +198,15 @@ def main():
                     else:
                         # Try relative to parent directory
                         parent_dir = os.path.dirname(app_dir)
-                        alt_path = os.path.join(parent_dir, pdf_path.lstrip('../'))
+                        alt_path = os.path.join(parent_dir, pdf_path.lstrip("../"))
                         if os.path.exists(alt_path):
                             pdf_path = alt_path
-            
+
             if not os.path.exists(pdf_path):
                 print(f"❌ Error: PDF file not found: {args.pdf}")
                 print(f"   Tried: {pdf_path}")
                 return 1
-            
+
             records_df = process_pdf_file(pdf_path, book_title=args.book_title)
         elif args.pdf_dir:
             print("📁 Processing PDF directory...")
@@ -227,25 +229,26 @@ def main():
         print("\n🗄️  Setting up database...")
         print("   Creating tables...")
         vec.create_tables()
-        
+
         if not args.skip_index:
             print("   Creating index (this may take a while)...")
             vec.create_index()  # DiskAnnIndex
         else:
             print("   Skipping index creation (using existing index)...")
-        
+
         print(f"\n💾 Inserting {len(records_df)} records into database...")
         vec.upsert(records_df)
         print("✅ Done! Data successfully uploaded to database.")
         print(f"   Total records inserted: {len(records_df)}")
         return 0
-        
+
     except KeyboardInterrupt:
         print("\n⚠️  Process interrupted by user")
         return 1
     except Exception as e:
         print(f"\n❌ Error: {str(e)}")
         import traceback
+
         traceback.print_exc()
         return 1
 
