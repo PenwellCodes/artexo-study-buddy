@@ -14,6 +14,7 @@ services:
 
 databases:
   - name: artexo-study-buddy-db
-    type: postgresql
+    databaseName: artexo-study-buddy-db
+    user: artexo_user
     plan: free
     ipAllowList: []
