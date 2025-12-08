@@ -1,0 +1,22 @@
+services:
+  # Web Service
+  - type: web
+    name: artexo-study-buddy
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TIMESCALE_SERVICE_URL
+        fromDatabase:
+          name: artexo-study-buddy-db
+          property: connectionString
+
+  # PostgreSQL Database
+  - type: pg
+    name: artexo-study-buddy-db
+    plan: free
+    databaseName: artexo_study_buddy
+    user: artexo_user
+

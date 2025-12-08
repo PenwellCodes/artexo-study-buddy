@@ -20,11 +20,16 @@ sys.path.insert(0, app_dir)
 if __name__ == "__main__":
     import uvicorn
     
+    # Get port from environment variable (Render sets PORT, default to 8001 for local dev)
+    port = int(os.getenv("PORT", 8001))
+    # Only enable reload in development (when PORT is not set by Render)
+    reload = os.getenv("PORT") is None
+    
     # Run the FastAPI app
     uvicorn.run(
         "api.main:app",
         host="0.0.0.0",
-        port=8001,
-        reload=True,  # Enable auto-reload during development
+        port=port,
+        reload=reload,  # Enable auto-reload during development only
     )
 

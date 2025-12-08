@@ -49,7 +49,10 @@ class GeminiSettings(LLMSettings):
 class DatabaseSettings(BaseModel):
     """Database connection settings."""
 
-    service_url: str = Field(default_factory=lambda: os.getenv("TIMESCALE_SERVICE_URL"))
+    service_url: str = Field(
+        default_factory=lambda: os.getenv("TIMESCALE_SERVICE_URL") 
+        or os.getenv("DATABASE_URL")  # Render provides DATABASE_URL
+    )
 
 
 class VectorStoreSettings(BaseModel):
