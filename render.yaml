@@ -12,7 +12,8 @@ services:
           name: artexo-study-buddy-db
           property: connectionString
 
+databases:
   - name: artexo-study-buddy-db
-    type: pg
+    type: postgresql
     plan: free
     ipAllowList: []
