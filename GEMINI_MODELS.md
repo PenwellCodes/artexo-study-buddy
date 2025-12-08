@@ -57,6 +57,6 @@ class GeminiSettings(LLMSettings):
 ## Notes
 
 - Flash models are optimized for speed and cost
-- Lite models are even cheaper but may have lower quality
+
 - Pro models are more capable but significantly more expensive
 - All models support the same API interface
